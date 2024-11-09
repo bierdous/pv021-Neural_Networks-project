@@ -8,21 +8,13 @@ class Data {
     public:
         size_t rows;
         size_t cols;
-        float** data;
+        float* data;
 
         Data(size_t row_n, size_t col_n) : rows(row_n), cols(col_n) {
-            data = new float*[rows];
-
-            for (size_t i = 0; i < rows; ++i) {
-                data[i] = new float[cols];
-            }
+            data = new float[rows * cols];
         }
 
         ~Data() {
-            for (size_t i = 0; i < rows; ++i) {
-                delete[] data[i];
-            }
-
             delete[] data;
         }
 
@@ -42,7 +34,7 @@ class Data {
                 size_t col = 0;
 
                 while (std::getline(lineStream, cell, ',') && col < cols) {
-                    data[row][col] = std::stof(cell);  // Convert the cell to a float
+                    data[row + col * rows] = std::stof(cell);  // Convert the cell to a float
                     col++;
                 }
                 row++;
@@ -53,10 +45,10 @@ class Data {
         }
 
         // Optional: Method to print the data for verification
-        void print_data() const {
-            for (size_t i = 0; i < rows; ++i) {
-                for (size_t j = 0; j < cols; ++j) {
-                    std::cout << data[i][j] << " ";
+        void print_data(size_t r_num, size_t c_num) const {
+            for (size_t i = 0; i < r_num; ++i) {
+                for (size_t j = 0; j < c_num; ++j) {
+                    std::cout << data[i + j * rows] << " ";
                 }
                 std::cout << std::endl;
             }
@@ -65,7 +57,7 @@ class Data {
         void init_rnd() {
             for (size_t i = 0; i < rows; ++i) {
                 for (size_t j = 0; j < cols; ++j) {
-                    data[i][j] = ((float)rand())/RAND_MAX;
+                    data[i + j*rows] = ((float)rand())/RAND_MAX;
                 }
             }
         }
@@ -73,7 +65,7 @@ class Data {
         void init_zero() {
             for (size_t i = 0; i < rows; ++i) {
                 for (size_t j = 0; j < cols; ++j) {
-                    data[i][j] = 0;
+                    data[i + j *rows] = 0;
                 }
             }
         }
@@ -81,10 +73,10 @@ class Data {
 
 // Correct loop order
 void mult(Data* y, Data* w, Data* x) {
-    for (size_t i = 0; i < w->cols; ++i) {
-        for (size_t j = 0; j < w->rows; ++j) {
-            for (size_t k = 0; k < x->cols; ++k) {
-                y->data[j][k] += w->data[j][i] * x->data[i][k];
+    for (size_t k = 0; k < x->cols; ++k) {
+        for (size_t i = 0; i < w->cols; ++i) {
+            for (size_t j = 0; j < w->rows; ++j) {
+                y->data[j + k*y->rows] += w->data[j+i*w->rows] * x->data[i+k*x->rows];
             }
         }
     }

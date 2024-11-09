@@ -5,11 +5,11 @@
 #include <cmath>
 
 int main() {
-    Data y(784,128);
+    Data y(128, 784);
     y.init_zero();
     Data w(128,128);
     w.init_rnd();
-    Data x(784,128);
+    Data x(128, 784);
     x.init_rnd();
 
     boost::timer::auto_cpu_timer t;
