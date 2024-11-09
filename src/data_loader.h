@@ -34,12 +34,12 @@ class Data {
             }
 
             std::string line;
-            int row = 0;
+            size_t row = 0;
 
             while (std::getline(file, line) && row < rows) {
                 std::stringstream lineStream(line);
                 std::string cell;
-                int col = 0;
+                size_t col = 0;
 
                 while (std::getline(lineStream, cell, ',') && col < cols) {
                     data[row][col] = std::stof(cell);  // Convert the cell to a float
@@ -54,11 +54,38 @@ class Data {
 
         // Optional: Method to print the data for verification
         void print_data() const {
-            for (int i = 0; i < rows; ++i) {
-                for (int j = 0; j < cols; ++j) {
+            for (size_t i = 0; i < rows; ++i) {
+                for (size_t j = 0; j < cols; ++j) {
                     std::cout << data[i][j] << " ";
                 }
                 std::cout << std::endl;
             }
         }
+
+        void init_rnd() {
+            for (size_t i = 0; i < rows; ++i) {
+                for (size_t j = 0; j < cols; ++j) {
+                    data[i][j] = ((float)rand())/RAND_MAX;
+                }
+            }
+        }
+
+        void init_zero() {
+            for (size_t i = 0; i < rows; ++i) {
+                for (size_t j = 0; j < cols; ++j) {
+                    data[i][j] = 0;
+                }
+            }
+        }
 };
+
+// Correct loop order
+void mult(Data* y, Data* w, Data* x) {
+    for (size_t i = 0; i < w->cols; ++i) {
+        for (size_t j = 0; j < w->rows; ++j) {
+            for (size_t k = 0; k < x->cols; ++k) {
+                y->data[j][k] += w->data[j][i] * x->data[i][k];
+            }
+        }
+    }
+}
