@@ -13,6 +13,9 @@ echo "#################"
 ## dont forget to use comiler optimizations (e.g. -O3 or -Ofast)
 # g++ -Wall -std=c++17 -O3 src/main.cpp src/file2.cpp -o network
 
+# This is from the consultation
+# g++ -Wall -std=c++17 -O3 -march=native -funroll-loops src/main.cpp -o src/main
+
 
 echo "#################"
 echo "     RUNNING     "

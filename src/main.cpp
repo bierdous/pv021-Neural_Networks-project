@@ -2,8 +2,8 @@
 #include <iostream>
 
 int main() {
-    Data test_vectors(10000, 28*28);
-    test_vectors.read_csv("../data/fashion_mnist_test_vectors.csv");
-    std::cout << test_vectors.rows;
-    test_vectors.print_data();
+    Matrix test_vectors(28*28, 10000);
+    read_csv("../data/fashion_mnist_test_vectors.csv", &test_vectors);
+    test_vectors.print_matrix(20, 1);
+    test_vectors.print_matrix(1, 20);
 }
