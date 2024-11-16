@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <string>
 #include <fstream>
@@ -55,7 +57,7 @@ class Matrix {
         void init_idx() {
             for (size_t i = 0; i < rows; ++i) {
                 for (size_t j = 0; j < cols; ++j) {
-                    data[i + j *rows] = 0;
+                    data[i + j *rows] = i + j *rows;
                 }
             }
         }
@@ -63,6 +65,15 @@ class Matrix {
 
 // Correct loop order
 void mult(Matrix* y, Matrix* w, Matrix* x) {
+    // Check for dimension compatibility
+    if (w->cols != x->rows) {
+        throw std::invalid_argument("Matrix multiplication error: Number of columns in w must equal the number of rows in x.");
+    }
+    if (y->rows != w->rows || y->cols != x->cols) {
+        throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
+    }
+
+
     for (size_t k = 0; k < x->cols; ++k) {
         for (size_t i = 0; i < w->cols; ++i) {
             for (size_t j = 0; j < w->rows; ++j) {
