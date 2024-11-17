@@ -11,7 +11,7 @@ int main() {
     read_csv("./layer_test_data/weights1.csv", test.weights);
    
 
-    test.forward();
+    test.forward_hidden();
     test.input->print_matrix();
     test.weights->print_matrix();
     test.inner->print_matrix();

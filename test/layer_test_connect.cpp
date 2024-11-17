@@ -15,13 +15,13 @@ int main() {
     two.weights->data[0] = 1;
     two.weights->data[1] = -1;
 
-    test.forward();
+    test.forward_hidden();
     test.input->print_matrix();
     test.weights->print_matrix();
     test.inner->print_matrix();
     test.output->print_matrix();
 
-    two.forward();
+    two.forward_hidden();
     two.input->print_matrix();
     two.weights->print_matrix();
     two.inner->print_matrix();
