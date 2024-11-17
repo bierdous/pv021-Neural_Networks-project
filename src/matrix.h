@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cmath>
 
 class Matrix {
     public:
@@ -36,10 +37,45 @@ class Matrix {
             }
         }
 
+        // preffered standardization method
+        void standardize_matrix_simple() const {
+            for (size_t i = 0; i < rows; ++i) {
+                for (size_t j = 0; j < cols; ++j) {
+                    data[i + j * rows] /= 255.0;
+                }
+            }
+        }
+       
+        /* this standardization method should be implemented for entire dataset, not only one image. 
+        Do it properly if there will be any problems with 'standardize_matrix_simple' version. */
+        void standardize_matrix_adv() const {
+            float mean = 0.0;
+            float sum_of_squares = 0.0;
+            size_t n = rows * cols; // n = total_elements
+
+            // 1. compute mean
+            for (size_t i = 0; i < n; ++i) {
+                float value = data[i];
+                mean += value;
+                sum_of_squares += value * value;
+            }
+            mean /= n;
+
+            // 2. compute st. deviation
+            /*           Variance = 1/n * sum((x-mean)^2) = ... = (sum(x^2) / n) - (mean^2)
+               standard deviation = sqrt(Variance) */
+            float std_dev = std::sqrt((sum_of_squares / n) - (mean * mean));
+
+            // 3. normalize the matrix
+            for (size_t i = 0; i < n; ++i) {
+                data[i] = (data[i] - mean) / std_dev;
+            }
+        }
+
         void init_rnd() {
             for (size_t i = 0; i < rows; ++i) {
                 for (size_t j = 0; j < cols; ++j) {
-                    data[i + j*rows] = ((float)rand())/RAND_MAX;
+                    data[i + j * rows] = ((float)rand())/RAND_MAX;
                 }
             }
         }
@@ -47,7 +83,7 @@ class Matrix {
         void init_zero() {
             for (size_t i = 0; i < rows; ++i) {
                 for (size_t j = 0; j < cols; ++j) {
-                    data[i + j *rows] = 0;
+                    data[i + j * rows] = 0;
                 }
             }
         }
