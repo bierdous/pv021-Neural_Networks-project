@@ -1,2 +1,5 @@
 data/
 *.json
+test/mmult_correct_test
+test/mstand_correct_test
+test/mprint_correct_test
