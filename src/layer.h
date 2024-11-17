@@ -12,6 +12,7 @@ class Layer {
         Matrix* input;
         Matrix* inner;
         Matrix* output;
+        Matrix* biases;
 
         Layer(Matrix* in, size_t out_len) {
             output_len = out_len;
@@ -19,26 +20,28 @@ class Layer {
             weights = new Matrix(output_len, input_len);
             input = in;
             inner = new Matrix(output_len, 1);
+            biases = new Matrix(output_len, 1);
             output = new Matrix(output_len, 1);
-            learning_rate = 0.01;
+            learning_rate = 0.1;
             k_in = 0;
             // Check for dimension compatibility
-            if (weights->cols != input->rows) {
-                throw std::invalid_argument("Matrix multiplication error: Number of columns in w must equal the number of rows in x.");
-            }
-            if (output->rows != weights->rows || output->cols != input->cols) {
-                throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
-            }
+            // if (weights->cols != input->rows) {
+            //     throw std::invalid_argument("Matrix multiplication error: Number of columns in w must equal the number of rows in x.");
+            // }
+            // if (output->rows != weights->rows || output->cols != input->cols) {
+            //     throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
+            // }
 
-            if (inner->rows != weights->rows || inner->cols != input->cols) {
-                throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
-            }
+            // if (inner->rows != weights->rows || inner->cols != input->cols) {
+            //     throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
+            // }
         }
 
         ~Layer() {
             delete weights;
             delete inner;
             delete output;
+            delete biases;
         }
         
         void init_He() {
@@ -78,6 +81,11 @@ class Layer {
         }
 
         void compute_inner() {
+            // Zero inner
+            for (size_t j = 0; j < inner->rows; ++j) {
+                    inner->data[j] = 0;
+            }
+
             // Compute inner potential
             for (size_t i = 0; i < weights->cols; ++i) {
                 for (size_t j = 0; j < weights->rows; ++j) {
@@ -104,11 +112,11 @@ class Layer {
                 }
         }
     
-        void backprop_output(Matrix* exp_result) {
+        void backprop_output(Matrix* exp_result, size_t k_exp, bool is_input = false) {
             
             // dE_k/dy_j = y_j - d_k
             for (int j = 0; j < output_len; j++) {
-                output->data[j] -= exp_result->data[j];
+                output->data[j] -= exp_result->data[j + k_exp*exp_result->rows];
             }
 
             // dE_k/dw_ji
@@ -127,11 +135,14 @@ class Layer {
                 }
                 // Backpropagating dE_k/dy(k-1)_j
                 // where k is the index of this layer
-                input->data[i + k_in*input_len] = prev_y_i_sum;
+                // We don't want to overwrite input data.
+                if (!is_input) {
+                    input->data[i + k_in*input_len] = prev_y_i_sum;
+                }
             }
         }
 
-        void backprop_hidden(Matrix* dEk_dyj_last, Layer* previous, bool is_input) {
+        void backprop_hidden(Layer* previous, bool is_input = false) {
             
              // dE_k/dw_ji
             float prev_y_i_sum = 0.0;
@@ -139,7 +150,7 @@ class Layer {
              for (size_t i = 0; i < weights->cols; ++i) {
                 prev_y_i_sum = 0.0;
                 for (size_t j = 0; j < weights->rows; ++j) {
-                    dy_j_dinner = d_ReLU(inner->data[j]);
+                    dy_j_dinner = d_sigmoid(inner->data[j]);
 
                     prev_y_i_sum += output->data[j] * dy_j_dinner * weights->data[j+i*weights->rows];
 
@@ -156,11 +167,22 @@ class Layer {
             }
         }
 
-        float error_lsq(Matrix *expected) {
+        float error_lsq(Matrix *expected, size_t k_exp) {
             float error = 0.0; 
             for (size_t j = 0; j < output_len; ++j) {
-                error += pow(output->data[j] - expected->data[j], 2);
+                error += pow(output->data[j] - expected->data[j + k_exp*expected->rows], 2);
             }
             return error/2;
+        }
+
+        // Assumes single output neuron
+        float error_bce(Matrix *expected, size_t k_exp) {
+            float d = expected->data[k_exp*expected->rows];
+            float y = output->data[0];
+            return - (d*log(y) + (1-d)*log(1-y));
+        }
+
+        float d_bce(float d, float y) {
+            return (y - d) / (y*(1 - y));
         }
 };
