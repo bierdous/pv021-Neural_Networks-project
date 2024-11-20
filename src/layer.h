@@ -1,6 +1,7 @@
 #include "matrix.h"
 #include <cmath>
 #include <random>
+#include <functional>
 
 class Layer {
     public:
@@ -17,6 +18,7 @@ class Layer {
         Layer(Matrix* in, size_t out_len) {
             output_len = out_len;
             input_len = in->rows;
+
             weights = new Matrix(output_len, input_len);
             input = in;
             inner = new Matrix(output_len, 1);
@@ -63,19 +65,19 @@ class Layer {
             }
         }
 
-        float ReLU(float inner) {
+        static float ReLU(float inner) {
             return inner > 0.0f ? inner : 0.0f;
         }
 
-        float d_ReLU(float inner) {
+        static float d_ReLU(float inner) {
             return inner > 0.0f ? 1.0f : 0.0f;
         }
 
-        float sigmoid(float inner) {
+        static float sigmoid(float inner) {
             return 1/(1+exp(-inner));
         }
 
-        float d_sigmoid(float inner) {
+        static float d_sigmoid(float inner) {
             float sig = sigmoid(inner);
             return sig*(1-sig);
         }
@@ -91,6 +93,15 @@ class Layer {
                 for (size_t j = 0; j < weights->rows; ++j) {
                     inner->data[j] += weights->data[j+i*weights->rows] * input->data[i + k_in*input_len];
                 }
+            }
+        }
+
+        void forward(std::function<float(float)> activation_fun) {
+            compute_inner();
+
+            // Apply activation function
+            for (size_t j = 0; j < output->rows; ++j) {
+                    output->data[j] = activation_fun(inner->data[j]);
             }
         }
 
@@ -111,7 +122,32 @@ class Layer {
                     output->data[j] = sigmoid(inner->data[j]);
                 }
         }
-    
+
+        void backprop(Matrix* dE_kdy_j, std::function<float(float)> activation_d_fun, bool is_input = false) {
+            // dE_k/dw_ji or the derivative of error
+            float prev_y_i_sum = 0.0;
+            float dy_j_dinner = 0.0;
+             for (size_t i = 0; i < weights->cols; ++i) {
+                prev_y_i_sum = 0.0;
+                for (size_t j = 0; j < weights->rows; ++j) {
+                    dy_j_dinner = activation_d_fun(inner->data[j]);
+
+                    prev_y_i_sum += dE_kdy_j->data[j + k_in*input_len] * dy_j_dinner * weights->data[j+i*weights->rows];
+
+                    // dE_k/dw_ji = dE_k/dy_j * dy_j_dinner_j * dinner_j/dw_ji
+                
+                    weights->data[j+i*weights->rows] -= learning_rate * dE_kdy_j->data[j + k_in*input_len] * dy_j_dinner * input->data[i + k_in*input_len];
+                }
+                // Backpropagating dE_k/dy(k-1)_j
+                // where k is the index of this layer
+                // We don't want to overwrite input data.
+                if (!is_input) {
+                    input->data[i + k_in*input_len] = prev_y_i_sum;
+                }
+            }
+        }
+
+
         void backprop_output(Matrix* exp_result, size_t k_exp, bool is_input = false) {
             
             // dE_k/dy_j = y_j - d_k
@@ -175,6 +211,13 @@ class Layer {
             return error/2;
         }
 
+        void d_lsq(Matrix *exp_result, size_t k_exp) {
+            // dE_k/dy_j = y_j - d_k
+            for (int j = 0; j < output_len; j++) {
+                output->data[j] -= exp_result->data[j + k_exp*exp_result->rows];
+            }
+        }
+
         // Assumes single output neuron
         float error_bce(Matrix *expected, size_t k_exp) {
             float d = expected->data[k_exp*expected->rows];
@@ -182,7 +225,9 @@ class Layer {
             return - (d*log(y) + (1-d)*log(1-y));
         }
 
-        float d_bce(float d, float y) {
-            return (y - d) / (y*(1 - y));
+        void d_bce(Matrix *exp_result, size_t k_exp) {
+            float d = exp_result->data[k_exp];
+            float y = output->data[0];
+            output->data[0] = (y - d) / (y*(1 - y));
         }
 };
