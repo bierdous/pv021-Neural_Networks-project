@@ -5,7 +5,6 @@
 
 class Layer {
     public:
-        size_t k_in;
         size_t input_len;
         size_t output_len;
         float learning_rate;
@@ -25,18 +24,6 @@ class Layer {
             biases = new Matrix(output_len, 1);
             output = new Matrix(output_len, 1);
             learning_rate = 0.1;
-            k_in = 0;
-            // Check for dimension compatibility
-            // if (weights->cols != input->rows) {
-            //     throw std::invalid_argument("Matrix multiplication error: Number of columns in w must equal the number of rows in x.");
-            // }
-            // if (output->rows != weights->rows || output->cols != input->cols) {
-            //     throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
-            // }
-
-            // if (inner->rows != weights->rows || inner->cols != input->cols) {
-            //     throw std::invalid_argument("Matrix multiplication error: Dimensions of y must be (w->rows, x->cols).");
-            // }
         }
 
         ~Layer() {
@@ -61,6 +48,19 @@ class Layer {
             for (size_t i = 0; i < weights->cols; ++i) {
                 for (size_t j = 0; j < weights->rows; ++j) {
                     weights->data[j+i*weights->rows] = random_He();
+                }
+            }
+        }
+
+        // Initializes weights with random 0-1 values
+        void init_rnd() {
+            std::random_device rd{};
+            std::mt19937 gen{rd()};
+
+            std::uniform_real_distribution<float> d(0.0, 1.0);
+            for (size_t i = 0; i < weights->cols; ++i) {
+                for (size_t j = 0; j < weights->rows; ++j) {
+                    weights->data[j+i*weights->rows] = d(gen);
                 }
             }
         }
@@ -91,7 +91,7 @@ class Layer {
             // Compute inner potential
             for (size_t i = 0; i < weights->cols; ++i) {
                 for (size_t j = 0; j < weights->rows; ++j) {
-                    inner->data[j] += weights->data[j+i*weights->rows] * input->data[i + k_in*input_len];
+                    inner->data[j] += weights->data[j+i*weights->rows] * input->data[i];
                 }
             }
         }
@@ -123,7 +123,7 @@ class Layer {
                 }
         }
 
-        void backprop(Matrix* dE_kdy_j, std::function<float(float)> activation_d_fun, bool is_input = false) {
+        void backprop(Matrix* dE_kdy_j, std::function<float(float)> activation_d_fun) {
             // dE_k/dw_ji or the derivative of error
             float prev_y_i_sum = 0.0;
             float dy_j_dinner = 0.0;
@@ -132,74 +132,16 @@ class Layer {
                 for (size_t j = 0; j < weights->rows; ++j) {
                     dy_j_dinner = activation_d_fun(inner->data[j]);
 
-                    prev_y_i_sum += dE_kdy_j->data[j + k_in*input_len] * dy_j_dinner * weights->data[j+i*weights->rows];
+                    prev_y_i_sum += dE_kdy_j->data[j] * dy_j_dinner * weights->data[j+i*weights->rows];
 
                     // dE_k/dw_ji = dE_k/dy_j * dy_j_dinner_j * dinner_j/dw_ji
                 
-                    weights->data[j+i*weights->rows] -= learning_rate * dE_kdy_j->data[j + k_in*input_len] * dy_j_dinner * input->data[i + k_in*input_len];
+                    weights->data[j+i*weights->rows] -= learning_rate * dE_kdy_j->data[j] * dy_j_dinner * input->data[i];
                 }
                 // Backpropagating dE_k/dy(k-1)_j
                 // where k is the index of this layer
                 // We don't want to overwrite input data.
-                if (!is_input) {
-                    input->data[i + k_in*input_len] = prev_y_i_sum;
-                }
-            }
-        }
-
-
-        void backprop_output(Matrix* exp_result, size_t k_exp, bool is_input = false) {
-            
-            // dE_k/dy_j = y_j - d_k
-            for (int j = 0; j < output_len; j++) {
-                output->data[j] -= exp_result->data[j + k_exp*exp_result->rows];
-            }
-
-            // dE_k/dw_ji
-            float prev_y_i_sum = 0.0;
-            float dy_j_dinner = 0.0;
-             for (size_t i = 0; i < weights->cols; ++i) {
-                prev_y_i_sum = 0.0;
-                for (size_t j = 0; j < weights->rows; ++j) {
-                    dy_j_dinner = d_sigmoid(inner->data[j]);
-
-                    prev_y_i_sum += output->data[j] * dy_j_dinner * weights->data[j+i*weights->rows];
-
-                    // dE_k/dw_ji = dE_k/dy_j * dy_j_dinner_j * dinner_j/dw_ji
-                
-                    weights->data[j+i*weights->rows] -= learning_rate * output->data[j] * dy_j_dinner * input->data[i + k_in*input_len];
-                }
-                // Backpropagating dE_k/dy(k-1)_j
-                // where k is the index of this layer
-                // We don't want to overwrite input data.
-                if (!is_input) {
-                    input->data[i + k_in*input_len] = prev_y_i_sum;
-                }
-            }
-        }
-
-        void backprop_hidden(Layer* previous, bool is_input = false) {
-            
-             // dE_k/dw_ji
-            float prev_y_i_sum = 0.0;
-            float dy_j_dinner = 0.0;
-             for (size_t i = 0; i < weights->cols; ++i) {
-                prev_y_i_sum = 0.0;
-                for (size_t j = 0; j < weights->rows; ++j) {
-                    dy_j_dinner = d_sigmoid(inner->data[j]);
-
-                    prev_y_i_sum += output->data[j] * dy_j_dinner * weights->data[j+i*weights->rows];
-
-                    // dE_k/dw_ji = dE_k/dy_j * dy_j_dinner_j * dinner_j/dw_ji
-                    // dE_k/dy_j is taken from previous layer because output->data[j] == input->data[i] (previous layer)
-                
-                    weights->data[j+i*weights->rows] -= learning_rate * output->data[j] * dy_j_dinner * input->data[k_in*input_len];
-                }
-
-                // We don't want to overwrite input data.
-                if (!is_input) {
-                    previous->output->data[i] = prev_y_i_sum;
-                }
+                input->data[i] = prev_y_i_sum;
             }
         }
 

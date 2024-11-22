@@ -21,6 +21,20 @@ class Matrix {
             delete[] data;
         }
 
+        void copyCol(Matrix* dst, size_t k) {
+            if (dst->rows != rows) {
+                throw std::invalid_argument("Matrix rows don't match");
+            }
+
+            if (k > cols) {
+                throw std::invalid_argument("k is larger than matrix columns");
+            }
+
+            for (size_t j = 0; j < rows; ++j) {
+                dst->data[j] = data[j + k * rows];
+            }
+        } 
+
         void print_matrix(size_t r_num, size_t c_num) const {
             for (size_t i = 0; i < r_num; ++i) {
                 for (size_t j = 0; j < c_num; ++j) {
