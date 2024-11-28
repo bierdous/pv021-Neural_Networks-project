@@ -21,6 +21,10 @@ class Matrix {
             delete[] data;
         }
 
+        float get(size_t row, size_t col) {
+            return data[row + col * rows];
+        }
+
         void copy_col(Matrix* dst, size_t k) {
             if (dst->rows != rows) {
                 throw std::invalid_argument("Matrix rows don't match");
