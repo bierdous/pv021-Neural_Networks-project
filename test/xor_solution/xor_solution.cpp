@@ -27,7 +27,7 @@ int main() {
         error = 0.0;
         for (size_t k = 0; k < data.cols; ++k) {
             // Choose the correct sample
-            data.copyCol(&inp, k);
+            data.copy_col(&inp, k);
 
             // Forward pass
             h1.forward(Layer::ReLU);
@@ -56,7 +56,7 @@ int main() {
     std::cout << "\n";
     out.weights->print_matrix();
     for (size_t k = 0; k < data.cols; ++k) {
-            data.copyCol(&inp, k);
+            data.copy_col(&inp, k);
             h1.forward(Layer::ReLU);
             out.forward(Layer::sigmoid);
 

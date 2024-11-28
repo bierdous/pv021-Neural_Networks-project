@@ -21,7 +21,7 @@ class Matrix {
             delete[] data;
         }
 
-        void copyCol(Matrix* dst, size_t k) {
+        void copy_col(Matrix* dst, size_t k) {
             if (dst->rows != rows) {
                 throw std::invalid_argument("Matrix rows don't match");
             }
@@ -35,9 +35,9 @@ class Matrix {
             }
         } 
 
-        void print_matrix(size_t r_num, size_t c_num) const {
-            for (size_t i = 0; i < r_num; ++i) {
-                for (size_t j = 0; j < c_num; ++j) {
+        void print_matrix(size_t r_start, size_t r_end, size_t c_start, size_t c_end) const {
+            for (size_t i = r_start; i < r_end; ++i) {
+                for (size_t j = c_start; j < c_end; ++j) {
                     std::cout << data[i + j * rows] << " ";
                 }
                 std::cout << std::endl;
