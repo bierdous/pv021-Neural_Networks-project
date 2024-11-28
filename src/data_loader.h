@@ -5,11 +5,31 @@
 #include <iostream>
 #include "matrix.h"
 
+void write_csv_predictions(const std::string &file_path, Matrix *m) {
+    // Open the file in output mode and overwrite its contents
+    std::ofstream out_file(file_path, std::ios::out | std::ios::trunc);
+
+    // Check if the file was successfully opened
+    if (!out_file) {
+        throw std::invalid_argument("Couldn't open file for writing.");
+    }
+
+    // Write each number to the file, one per line
+    for (size_t col = 0; col < m->cols; col++) {
+        for (size_t row = 0; row < m->rows; row++) {
+            if (m->data[row + col * m->rows] == 1) {
+                out_file << row << '\n';
+            }
+        }
+    }
+
+    // File will automatically close when outFile goes out of scope
+}
+
 void read_csv_labels(const std::string &file_path, Matrix* m) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open .csv file " << file_path << std::endl;
-        return;
+        throw std::invalid_argument("Couldn't open file for writing.");
     }
 
     std::string line; 
@@ -40,8 +60,7 @@ void read_csv_labels(const std::string &file_path, Matrix* m) {
 void read_csv(const std::string &file_path, Matrix* m, bool transpose = false) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open .csv file " << file_path << std::endl;
-        return;
+        throw std::invalid_argument("Couldn't open file for writing.");
     }
 
     std::string line; 
