@@ -21,6 +21,49 @@ class Matrix {
             delete[] data;
         }
 
+        std::vector<Matrix> getMinibatches(Matrix* input, size_t minibatch_size, bool shuffle = true) {
+            minibatch_size = std::min(minibatch_size, cols);
+
+            // Generate column indices
+            std::vector<size_t> column_indices(input->cols);
+            for (size_t i = 0; i < input->cols; ++i) {
+                column_indices[i] = i;
+            }
+
+            // Shuffle indices if required
+            if (shuffle) {
+                auto rng = std::default_random_engine {};
+                std::shuffle(std::begin(column_indices), std::end(column_indices), rng);
+            }
+
+            // Calculate the number of minibatches
+            size_t num_minibatches = std::ceil(input->cols / minibatch_size);
+
+            // Create minibatches
+            std::vector<Matrix> minibatches;
+            minibatches.reserve(num_minibatches);
+
+            for (size_t batch_index = 0; batch_index < num_minibatches; ++batch_index) {
+                // Determine the starting and ending columns for this minibatch
+                size_t start_col = batch_index * minibatch_size;
+                size_t end_col = std::min(start_col + minibatch_size, cols);
+                size_t current_batch_size = end_col - start_col;
+
+                // Create a minibatch matrix
+                Matrix minibatch(input->rows, current_batch_size);
+
+                // Populate the minibatch with the selected columns
+                for (size_t i = 0; i < current_batch_size; ++i) {
+                    size_t col = column_indices[start_col + i];
+                    input->copy_col(&minibatch, col);
+                }
+
+                minibatches.push_back(minibatch);
+            }
+
+            return minibatches;
+        }
+
         float get(size_t row, size_t col) {
             return data[row + col * rows];
         }

@@ -23,7 +23,7 @@ int main() {
     float error = 0.0;
 
     // Need atleast 1000 epochs
-    for (size_t epoch = 0; epoch < 1000; ++epoch) {
+    for (size_t epoch = 0; epoch < 100; ++epoch) {
         error = 0.0;
         for (size_t k = 0; k < data.cols; ++k) {
             h1.k = k;
@@ -44,8 +44,13 @@ int main() {
             out.backprop(out.output, Layer::d_sigmoid);
             h1.backprop(h1.output, Layer::d_ReLU, true);
         }
+
+        h1.update_weights();
+        out.update_weights();
         
-        if (epoch % 100 == 0) {
+        h1.weight_diff->init_zero();
+        out.weight_diff->init_zero();
+        if (epoch % 10 == 0) {
             std::cout << "Loss: " << error << "(epoch " << epoch << ")\n";
         }
     }

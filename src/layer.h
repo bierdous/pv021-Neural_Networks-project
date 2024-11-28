@@ -10,6 +10,7 @@ class Layer {
         size_t output_len;
         float learning_rate;
         Matrix* weights;
+        Matrix* weight_diff;
         Matrix* input;
         Matrix* inner;
         Matrix* output;
@@ -19,6 +20,8 @@ class Layer {
             input_len = in->rows;
 
             weights = new Matrix(output_len, input_len);
+            weight_diff = new Matrix(output_len, input_len);
+            weight_diff->init_zero();
             input = in;
             inner = new Matrix(output_len, 1);
             output = new Matrix(output_len, in->cols);
@@ -27,6 +30,7 @@ class Layer {
 
         ~Layer() {
             delete weights;
+            delete weight_diff;
             delete inner;
             delete output;
         }
@@ -153,13 +157,21 @@ class Layer {
 
                     // dE_k/dw_ji = dE_k/dy_j * dy_j_dinner_j * dinner_j/dw_ji
                 
-                    weights->data[j+i*weights->rows] -= learning_rate * dE_kdy_j->get(j, k) * dy_j_dinner * input->get(i, k);
+                    weight_diff->data[j+i*weights->rows] += dE_kdy_j->get(j, k) * dy_j_dinner * input->get(i, k);
                 }
                 // Backpropagating dE_k/dy(k-1)_j
                 // where k is the index of this layer
                 // We don't want to overwrite input data.
                 if (!is_input) {
                     input->data[i + k*input->rows] = prev_y_i_sum;
+                }
+            }
+        }
+
+        void update_weights() {
+             for (size_t i = 0; i < weights->cols; ++i) {
+                for (size_t j = 0; j < weights->rows; ++j) {
+                    weights->data[j + i*weights->rows] -= learning_rate * weight_diff->get(j, i);
                 }
             }
         }
