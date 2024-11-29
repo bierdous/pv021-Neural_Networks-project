@@ -1,11 +1,15 @@
 #pragma once
 
+#include <algorithm> // For std::shuffle
+#include <random>    // For std::default_random_engine
+#include <cstdlib>  
 #include <cstddef>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 class Matrix {
     public:
@@ -17,11 +21,99 @@ class Matrix {
             data = new float[rows * cols];
         }
 
+        Matrix(Matrix *other) {
+            rows = other->rows;
+            cols = other->cols;
+
+            data = new float[rows * cols];
+            
+            for (size_t i = 0; i < rows; ++i) {
+                for (size_t j = 0; j < cols; ++j) {
+                    data[i + j * rows] = other->get(i, j);
+                }
+            }
+        }
+
+
         ~Matrix() {
             delete[] data;
         }
 
-        void copyCol(Matrix* dst, size_t k) {
+
+        std::vector<size_t> get_shuffle_indices() {
+            std::vector<size_t> column_indices(cols);
+            
+            for (size_t i = 0; i < cols; ++i) {
+                column_indices[i] = i;
+            }
+
+            auto rd = std::random_device {}; 
+            auto rng = std::default_random_engine { rd() };
+
+            std::shuffle(std::begin(column_indices), std::end(column_indices), rng);
+            
+            return column_indices;
+        }
+
+        void shuffle_cols(std::vector<size_t> column_indices) {
+            Matrix temp(this);
+
+            for (size_t col = 0; col < temp.cols; col++) {
+                for (size_t row = 0; row < temp.rows; row++) {
+                    data[row + col*rows] = temp.get(row, column_indices[col]);
+                }
+            }
+        }
+
+        // Too complex, not used for now;
+        std::vector<Matrix> getMinibatches(size_t minibatch_size, bool shuffle = true) {
+            minibatch_size = std::min(minibatch_size, cols);
+
+            // Generate column indices
+            std::vector<size_t> column_indices(cols);
+            for (size_t i = 0; i < cols; ++i) {
+                column_indices[i] = i;
+            }
+
+            // Shuffle indices if required
+            if (shuffle) {
+                auto rng = std::default_random_engine {};
+                std::shuffle(std::begin(column_indices), std::end(column_indices), rng);
+            }
+
+            // Calculate the number of minibatches
+            size_t num_minibatches = std::ceil(cols / minibatch_size);
+
+            // Create minibatches
+            std::vector<Matrix> minibatches;
+            minibatches.reserve(num_minibatches);
+
+            for (size_t batch_index = 0; batch_index < num_minibatches; ++batch_index) {
+                // Determine the starting and ending columns for this minibatch
+                size_t start_col = batch_index * minibatch_size;
+                size_t end_col = std::min(start_col + minibatch_size, cols);
+                size_t current_batch_size = end_col - start_col;
+
+                // Create a minibatch matrix
+                Matrix minibatch(rows, current_batch_size);
+
+                // Populate the minibatch with the selected columns
+                for (size_t i = 0; i < current_batch_size; ++i) {
+                    size_t col = column_indices[start_col + i];
+                    copy_col(&minibatch, col);
+                }
+
+                minibatches.push_back(minibatch);
+            }
+
+            return minibatches;
+        }
+
+        float get(size_t row, size_t col) {
+            return data[row + col * rows];
+        }
+
+        void copy_col(Matrix* dst, size_t k) {
             if (dst->rows != rows) {
                 throw std::invalid_argument("Matrix rows don't match");
             }
@@ -35,9 +127,9 @@ class Matrix {
             }
         } 
 
-        void print_matrix(size_t r_num, size_t c_num) const {
-            for (size_t i = 0; i < r_num; ++i) {
-                for (size_t j = 0; j < c_num; ++j) {
+        void print_matrix(size_t r_start, size_t r_end, size_t c_start, size_t c_end) const {
+            for (size_t i = r_start; i < r_end; ++i) {
+                for (size_t j = c_start; j < c_end; ++j) {
                     std::cout << data[i + j * rows] << " ";
                 }
                 std::cout << std::endl;
@@ -106,7 +198,7 @@ class Matrix {
 
         void init_idx() {
             for (size_t i = 0; i < rows; ++i) {
-                for (size_t j = 0; j < cols; ++j) {
+                for (size_t j = 0; j < cols; ++j)  {
                     data[i + j *rows] = i + j *rows;
                 }
             }

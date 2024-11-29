@@ -18,7 +18,7 @@ int main() {
     for (size_t epoch = 0; epoch < 100; ++epoch) {
         error = 0.0;
         for (size_t k = 0; k < 1; ++k) {
-            data.copyCol(&inp, 2);
+            data.copy_col(&inp, 2);
             // Choose the correct sample
             h1.forward(Layer::ReLU);
             out.forward(Layer::sigmoid);

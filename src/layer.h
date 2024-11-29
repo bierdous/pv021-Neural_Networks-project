@@ -5,32 +5,34 @@
 
 class Layer {
     public:
+        size_t k;
         size_t input_len;
         size_t output_len;
         float learning_rate;
         Matrix* weights;
+        Matrix* weight_diff;
         Matrix* input;
         Matrix* inner;
         Matrix* output;
-        Matrix* biases;
 
-        Layer(Matrix* in, size_t out_len) {
+        Layer(Matrix* in, size_t out_len, float lr = 0.1) {
             output_len = out_len;
             input_len = in->rows;
 
             weights = new Matrix(output_len, input_len);
+            weight_diff = new Matrix(output_len, input_len);
+            weight_diff->init_zero();
             input = in;
             inner = new Matrix(output_len, 1);
-            biases = new Matrix(output_len, 1);
-            output = new Matrix(output_len, 1);
-            learning_rate = 0.1;
+            output = new Matrix(output_len, in->cols);
+            learning_rate = lr;
         }
 
         ~Layer() {
             delete weights;
+            delete weight_diff;
             delete inner;
             delete output;
-            delete biases;
         }
         
         void init_He() {
@@ -48,6 +50,25 @@ class Layer {
             for (size_t i = 0; i < weights->cols; ++i) {
                 for (size_t j = 0; j < weights->rows; ++j) {
                     weights->data[j+i*weights->rows] = random_He();
+                }
+            }
+        }
+
+        void init_Xavier() {
+            // Taken from https://en.cppreference.com/w/cpp/numeric/random/normal_distribution
+            std::random_device rd{};
+            std::mt19937 gen{rd()};
+        
+            // values near the mean are the most likely
+            // standard deviation affects the dispersion of generated values from the mean
+            std::normal_distribution<float> d{0.0, sqrt(6.0/((float)input_len+(float)output_len))};
+        
+            // draw a sample from the normal distribution
+            auto random_Xavier = [&d, &gen]{ return d(gen); };
+
+            for (size_t i = 0; i < weights->cols; ++i) {
+                for (size_t j = 0; j < weights->rows; ++j) {
+                    weights->data[j+i*weights->rows] = random_Xavier();
                 }
             }
         }
@@ -82,6 +103,10 @@ class Layer {
             return sig*(1-sig);
         }
 
+        static float d_one(float inner) {
+            return 1;
+        }
+
         void compute_inner() {
             // Zero inner
             for (size_t j = 0; j < inner->rows; ++j) {
@@ -91,7 +116,7 @@ class Layer {
             // Compute inner potential
             for (size_t i = 0; i < weights->cols; ++i) {
                 for (size_t j = 0; j < weights->rows; ++j) {
-                    inner->data[j] += weights->data[j+i*weights->rows] * input->data[i];
+                    inner->data[j] += weights->get(j, i) * input->get(i, k);
                 }
             }
         }
@@ -101,7 +126,7 @@ class Layer {
 
             // Apply activation function
             for (size_t j = 0; j < output->rows; ++j) {
-                    output->data[j] = activation_fun(inner->data[j]);
+                    output->data[j + k*output->rows] = activation_fun(inner->data[j]);
             }
         }
 
@@ -110,7 +135,7 @@ class Layer {
 
             // Apply activation function
             for (size_t j = 0; j < output->rows; ++j) {
-                    output->data[j] = ReLU(inner->data[j]);
+                    output->data[j + k*output->rows] = ReLU(inner->data[j]);
                 }
         }
 
@@ -119,11 +144,11 @@ class Layer {
 
             // Apply activation function
             for (size_t j = 0; j < output->rows; ++j) {
-                    output->data[j] = sigmoid(inner->data[j]);
+                    output->data[j + k*output->rows] = sigmoid(inner->data[j]);
                 }
         }
 
-        void backprop(Matrix* dE_kdy_j, std::function<float(float)> activation_d_fun) {
+        void backprop(Matrix* dE_kdy_j, std::function<float(float)> activation_d_fun, bool is_input = false) {
             // dE_k/dw_ji or the derivative of error
             float prev_y_i_sum = 0.0;
             float dy_j_dinner = 0.0;
@@ -132,44 +157,89 @@ class Layer {
                 for (size_t j = 0; j < weights->rows; ++j) {
                     dy_j_dinner = activation_d_fun(inner->data[j]);
 
-                    prev_y_i_sum += dE_kdy_j->data[j] * dy_j_dinner * weights->data[j+i*weights->rows];
+                    prev_y_i_sum += dE_kdy_j->get(j, k) * dy_j_dinner * weights->get(j, i);
 
                     // dE_k/dw_ji = dE_k/dy_j * dy_j_dinner_j * dinner_j/dw_ji
                 
-                    weights->data[j+i*weights->rows] -= learning_rate * dE_kdy_j->data[j] * dy_j_dinner * input->data[i];
+                    weight_diff->data[j+i*weights->rows] += dE_kdy_j->get(j, k) * dy_j_dinner * input->get(i, k);
                 }
                 // Backpropagating dE_k/dy(k-1)_j
                 // where k is the index of this layer
                 // We don't want to overwrite input data.
-                input->data[i] = prev_y_i_sum;
+                if (!is_input) {
+                    input->data[i + k*input->rows] = prev_y_i_sum;
+                }
             }
         }
 
-        float error_lsq(Matrix *expected, size_t k_exp) {
+        void update_weights() {
+             for (size_t i = 0; i < weights->cols; ++i) {
+                for (size_t j = 0; j < weights->rows; ++j) {
+                    weights->data[j + i*weights->rows] -= learning_rate * weight_diff->get(j, i);
+                }
+            }
+        }
+
+        float error_lsq(Matrix *expected) {
             float error = 0.0; 
             for (size_t j = 0; j < output_len; ++j) {
-                error += pow(output->data[j] - expected->data[j + k_exp*expected->rows], 2);
+                error += pow(output->get(j, k) - expected->get(j, k), 2);
             }
             return error/2;
         }
 
-        void d_lsq(Matrix *exp_result, size_t k_exp) {
+        void d_lsq(Matrix *expected) {
             // dE_k/dy_j = y_j - d_k
             for (int j = 0; j < output_len; j++) {
-                output->data[j] -= exp_result->data[j + k_exp*exp_result->rows];
+                output->data[j + k*output->rows] -= expected->get(j, k);
+            }
+        }
+
+        // Softmax is gratis here
+        // TODO: TEST!
+        float error_catCE(Matrix *expected) {
+            float error = 0.0;
+
+            float denom_sum = 0.0;
+            for (size_t j = 0; j < output->rows; ++j) {
+                denom_sum += exp(output->get(j, k));
+            }
+
+            for (size_t j = 0; j < expected->rows; ++j) {
+                output->data[j + k*output->rows] = exp(output->get(j, k))/denom_sum;
+
+                float target_class = expected->get(j, k);
+
+                if (target_class == 1) {
+                    error = -log(output->get(j,k));
+                }
+            }
+            return error;
+        }
+
+        // Backprop should be called with d_one() activation function (which is neutral)
+        // As this derivative already computes the derivative of error based on inner potential.
+        // TODO: TEST!
+        void d_catCE(Matrix *expected) {
+            for (size_t j = 0; j < expected->rows; ++j) {
+                float target_class = expected->get(j, k);
+
+                if (target_class == 1) {
+                    output->data[j + k * output->rows] = output->get(j,k) - 1;
+                }
             }
         }
 
         // Assumes single output neuron
-        float error_bce(Matrix *expected, size_t k_exp) {
-            float d = expected->data[k_exp*expected->rows];
-            float y = output->data[0];
+        float error_bce(Matrix *expected) {
+            float d = expected->get(0, k);
+            float y = output->get(0, k);
             return - (d*log(y) + (1-d)*log(1-y));
         }
 
-        void d_bce(Matrix *exp_result, size_t k_exp) {
-            float d = exp_result->data[k_exp];
-            float y = output->data[0];
-            output->data[0] = (y - d) / (y*(1 - y));
+        void d_bce(Matrix *expected) {
+            float d = expected->get(0, k);
+            float y = output->get(0, k);
+            output->data[0 + k*output->rows] = (y - d) / (y*(1 - y));
         }
 };
