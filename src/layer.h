@@ -103,6 +103,10 @@ class Layer {
             return sig*(1-sig);
         }
 
+        static float d_one(float inner) {
+            return 1;
+        }
+
         void compute_inner() {
             // Zero inner
             for (size_t j = 0; j < inner->rows; ++j) {
@@ -191,6 +195,41 @@ class Layer {
             }
         }
 
+        // Softmax is gratis here
+        // TODO: TEST!
+        float error_catCE(Matrix *expected) {
+            float error = 0.0;
+
+            float denom_sum = 0.0;
+            for (size_t j = 0; j < output->rows; ++j) {
+                denom_sum += exp(output->get(j, k));
+            }
+
+            for (size_t j = 0; j < expected->rows; ++j) {
+                output->data[j + k*output->rows] = exp(output->get(j, k))/denom_sum;
+
+                float target_class = expected->get(j, k);
+
+                if (target_class == 1) {
+                    error = -log(output->get(j,k));
+                }
+            }
+            return error;
+        }
+
+        // Backprop should be called with d_one() activation function (which is neutral)
+        // As this derivative already computes the derivative of error based on inner potential.
+        // TODO: TEST!
+        void d_catCE(Matrix *expected) {
+            for (size_t j = 0; j < expected->rows; ++j) {
+                float target_class = expected->get(j, k);
+
+                if (target_class == 1) {
+                    output->data[j + k * output->rows] = output->get(j,k) - 1;
+                }
+            }
+        }
+
         // Assumes single output neuron
         float error_bce(Matrix *expected) {
             float d = expected->get(0, k);
@@ -198,8 +237,8 @@ class Layer {
             return - (d*log(y) + (1-d)*log(1-y));
         }
 
-        void d_bce(Matrix *exp_result) {
-            float d = exp_result->get(0, k);
+        void d_bce(Matrix *expected) {
+            float d = expected->get(0, k);
             float y = output->get(0, k);
             output->data[0 + k*output->rows] = (y - d) / (y*(1 - y));
         }
