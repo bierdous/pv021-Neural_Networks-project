@@ -57,7 +57,7 @@ void read_csv_labels(const std::string &file_path, Matrix* m) {
     file.close();
 }
 
-void read_csv(const std::string &file_path, Matrix* m, bool transpose = false) {
+void read_csv(const std::string &file_path, Matrix* m, bool transpose = true) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
         throw std::invalid_argument("Couldn't open file for writing.");

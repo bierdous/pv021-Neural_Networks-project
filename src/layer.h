@@ -103,7 +103,10 @@ class Layer {
             return sig*(1-sig);
         }
 
-        static float d_one(float inner) {
+        static float identity(float inner) {
+            return inner;
+        }
+        static float d_identity(float inner) {
             return 1;
         }
 
@@ -217,7 +220,7 @@ class Layer {
             return error;
         }
 
-        // Backprop should be called with d_one() activation function (which is neutral)
+        // Backprop should be called with d_identity() activation function (which is neutral)
         // As this derivative already computes the derivative of error based on inner potential.
         // TODO: TEST!
         void d_catCE(Matrix *expected) {

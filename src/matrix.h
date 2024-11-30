@@ -127,6 +127,13 @@ class Matrix {
             }
         } 
 
+        void round_matrix() {
+            for (size_t col = 0; col < cols; col++) {
+                for (size_t row = 0; row < rows; row++) {
+                    data[row + col*rows] = round(get(row, col));
+                }
+            }
+        }
         void print_matrix(size_t r_start, size_t r_end, size_t c_start, size_t c_end) const {
             for (size_t i = r_start; i < r_end; ++i) {
                 for (size_t j = c_start; j < c_end; ++j) {

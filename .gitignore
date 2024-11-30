@@ -3,3 +3,8 @@ data/
 test/mmult_correct_test
 test/mstand_correct_test
 test/mprint_correct_test
+test/xor_solution/xor_solution
+test/labels_read/labels_read_test
+test/minibatches/batch_test
+test/identity_mapping/identity_mapping
+test/multi_class_classification/mcc_test
