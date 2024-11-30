@@ -8,3 +8,4 @@ test/labels_read/labels_read_test
 test/minibatches/batch_test
 test/identity_mapping/identity_mapping
 test/multi_class_classification/mcc_test
+network
