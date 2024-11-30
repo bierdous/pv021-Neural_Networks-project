@@ -3,7 +3,7 @@
 
 echo "Adding some modules"
 
-# module add gcc-10.2
+module add gcc-10.2
 
 
 echo "#################"
@@ -14,7 +14,7 @@ echo "#################"
 # g++ -Wall -std=c++17 -O3 src/main.cpp src/file2.cpp -o network
 
 # This is from the consultation
-# g++ -Wall -std=c++17 -O3 -march=native -funroll-loops src/main.cpp -o src/main
+g++ -Wall -std=c++17 -O3 -march=native -funroll-loops src/network.cpp -o network
 
 
 echo "#################"
@@ -24,4 +24,4 @@ echo "#################"
 ## use nice to decrease priority in order to comply with aisa rules
 ## https://www.fi.muni.cz/tech/unix/computation.html.en
 ## especially if you are using multiple cores
-# nice -n 19 ./network
+nice -n 19 ./network

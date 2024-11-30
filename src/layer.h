@@ -15,7 +15,7 @@ class Layer {
         Matrix* inner;
         Matrix* output;
 
-        Layer(Matrix* in, size_t out_len, float lr = 0.1) {
+        Layer(Matrix* in, size_t out_len, float lr = 0.0002) {
             output_len = out_len;
             input_len = in->rows;
 
@@ -35,6 +35,12 @@ class Layer {
             delete output;
         }
         
+        void set_input(Matrix *m) {
+            weight_diff->init_zero();
+            input = m;
+            output->cols = m->cols;
+        }
+
         void init_He() {
             // Taken from https://en.cppreference.com/w/cpp/numeric/random/normal_distribution
             std::random_device rd{};
@@ -176,11 +182,12 @@ class Layer {
         }
 
         void update_weights() {
-             for (size_t i = 0; i < weights->cols; ++i) {
+            for (size_t i = 0; i < weights->cols; ++i) {
                 for (size_t j = 0; j < weights->rows; ++j) {
                     weights->data[j + i*weights->rows] -= learning_rate * weight_diff->get(j, i);
                 }
             }
+            weight_diff->init_zero();
         }
 
         float error_lsq(Matrix *expected) {
@@ -193,13 +200,12 @@ class Layer {
 
         void d_lsq(Matrix *expected) {
             // dE_k/dy_j = y_j - d_k
-            for (int j = 0; j < output_len; j++) {
+            for(size_t j = 0; j < output_len; j++) {
                 output->data[j + k*output->rows] -= expected->get(j, k);
             }
         }
 
         // Softmax is gratis here
-        // TODO: TEST!
         float error_catCE(Matrix *expected) {
             float error = 0.0;
 
@@ -222,7 +228,6 @@ class Layer {
 
         // Backprop should be called with d_identity() activation function (which is neutral)
         // As this derivative already computes the derivative of error based on inner potential.
-        // TODO: TEST!
         void d_catCE(Matrix *expected) {
             for (size_t j = 0; j < expected->rows; ++j) {
                 float target_class = expected->get(j, k);

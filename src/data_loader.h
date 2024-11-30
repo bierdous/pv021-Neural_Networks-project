@@ -16,11 +16,18 @@ void write_csv_predictions(const std::string &file_path, Matrix *m) {
 
     // Write each number to the file, one per line
     for (size_t col = 0; col < m->cols; col++) {
+        float max = 0.0;
+        size_t max_idx = 0;
         for (size_t row = 0; row < m->rows; row++) {
-            if (m->data[row + col * m->rows] == 1) {
-                out_file << row << '\n';
+            if (m->data[row + col * m->rows] > max) {
+                max_idx = row;
+                max = m->data[row + col * m->rows];
             }
+            //if (m->data[row + col * m->rows] == 1) {
+            //    out_file << row << '\n';
+            //}
         }
+        out_file << max_idx << '\n';
     }
 
     // File will automatically close when outFile goes out of scope

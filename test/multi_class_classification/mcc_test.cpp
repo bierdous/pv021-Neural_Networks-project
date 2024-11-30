@@ -10,15 +10,22 @@ int main() {
 
     read_csv_labels("./mcc_train_labels.csv", &train_labels);
 
-    train_data.standardize_matrix_adv();
+
+    std::vector<size_t> shfl = train_data.get_shuffle_indices();
+    train_data.shuffle_cols(shfl);
+    train_labels.shuffle_cols(shfl);
 
     train_data.print_matrix();
+    train_data.standardize_matrix_adv();
     //train_labels.print_matrix();
 
     Layer h1(&train_data, 16);
     h1.init_He();
 
-    Layer out(h1.output, 3);
+    Layer h2(h1.output, 8);
+    h2.init_He();
+
+    Layer out(h2.output, 3);
     out.init_Xavier();
     float error = 0.0;
 
@@ -27,9 +34,11 @@ int main() {
         error = 0.0;
         for (size_t k = 0; k < train_data.cols; ++k) {
             h1.k = k;
+            h2.k = k;
             out.k = k;
             // Forward  pass
             h1.forward(Layer::ReLU);
+            h2.forward(Layer::ReLU);
             out.forward(Layer::identity);
             // std::cout << "Weights \n";
             // h1.weights->print_matrix();
@@ -42,10 +51,12 @@ int main() {
             // Error diff
             out.d_catCE(&train_labels);
             out.backprop(out.output, Layer::d_identity);
+            h2.backprop(h2.output, Layer::d_ReLU);
             h1.backprop(h1.output, Layer::d_ReLU, true);
         }
 
         h1.update_weights();
+        h2.update_weights();
         out.update_weights();
         
         h1.weight_diff->init_zero();
@@ -62,15 +73,18 @@ int main() {
     //out.weights->print_matrix();
     for (size_t k = 0; k < train_data.cols; ++k) {
             h1.k = k;
+            h2.k = k;
             out.k = k;
             h1.forward(Layer::ReLU);
+            h2.forward(Layer::ReLU);
             out.forward(Layer::identity);
 
             out.error_catCE(&train_labels);
     }
     out.output->round_matrix();
-    
+
     out.output->print_matrix();
+    std::cout << out.output->cols << "<- cols, rows ->" << out.output->rows << "\n";
     //out.weights->print_matrix();
     write_csv_predictions("mcc_train_preds.csv", out.output);
 }
