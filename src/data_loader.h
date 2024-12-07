@@ -5,6 +5,12 @@
 #include <iostream>
 #include "matrix.h"
 
+/**
+ * Writes predictions in a decimal format to an output file from a one-hot input matrix,
+ * one prediction per line.
+ * @param file_path The output file
+ * @param m Pointer to a one-hot matrix containing predictions
+ */
 void write_csv_predictions(const std::string &file_path, Matrix *m) {
     // Open the file in output mode and overwrite its contents
     std::ofstream out_file(file_path, std::ios::out | std::ios::trunc);

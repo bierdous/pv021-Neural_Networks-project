@@ -1,4 +1,4 @@
-put your UČOs (and names) on this line (no exact format required)
+Marek Dohnal (552405), Martin Bertko (514588)
 ## PV021 project -- Deep Learning from Scratch
 
 ### DEADLINE
