@@ -1,3 +1,10 @@
+/**
+ * Functions used to load inputs and labels, and save predictions.
+ * 
+ * Authors: Marek Dohnal (552405), Martin Bertko (514588)
+ * Date: 07/12/2024
+ */
+
 #include <cstddef>
 #include <string>
 #include <fstream>
@@ -39,6 +46,13 @@ void write_csv_predictions(const std::string &file_path, Matrix *m) {
     // File will automatically close when outFile goes out of scope
 }
 
+/**
+ * Reads labels stored in decimal format (one label per line) 
+ * into a one-hot formatted matrix. 
+ * The matrix must be initialized with correct dimensions.
+ * @param file_path The input file containing labels
+ * @param m Pointer to a matrix to be filled with one-hot values.
+ */
 void read_csv_labels(const std::string &file_path, Matrix* m) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
@@ -70,6 +84,13 @@ void read_csv_labels(const std::string &file_path, Matrix* m) {
     file.close();
 }
 
+/**
+ * Reads testing and training inputs. By default it transposes them
+ * such that the rows in the file are loaded as matrix columns.
+ * The matrix must be initialized with correct dimensions.
+ * @param file_path The input file containing input vectors.
+ * @param m Pointer to a matrix to be filled with inputs.
+ */
 void read_csv(const std::string &file_path, Matrix* m, bool transpose = true) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
