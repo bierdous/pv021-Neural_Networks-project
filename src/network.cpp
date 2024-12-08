@@ -5,10 +5,14 @@
  * Date: 07/12/2024
  */
 
+//#include <boost/timer/timer.hpp>
+
 #include "layer.h"
 #include "data_loader.h"
 
 int main() {
+    //boost::timer::auto_cpu_timer t;
+
     // Metadata
     const size_t img_size = 28*28;
     const size_t train_samples_cnt = 60000;
@@ -16,9 +20,9 @@ int main() {
     const size_t num_classes = 10;
 
     // Hyperparameters
-    const size_t batch_size = 512;
+    const size_t batch_size = 500;
     const float learning_rate = 0.0002;
-    const size_t epoch_cnt = 9;
+    const size_t epoch_cnt = 15;
 
     // Loading training data and labels
     Matrix train_data(img_size, train_samples_cnt);
@@ -39,10 +43,10 @@ int main() {
     test_data.standardize_matrix_adv();
 
     // Layers and weights initialization
-    Layer h1(&train_data, 256, learning_rate);
+    Layer h1(&train_data, 128, learning_rate);
     h1.init_He();
 
-    Layer h2(h1.output, 128, learning_rate);
+    Layer h2(h1.output, 64, learning_rate);
     h2.init_He();
 
     Layer out(h2.output, num_classes, learning_rate);
@@ -53,9 +57,9 @@ int main() {
     float total_epoch_loss = 0.0;
     for (size_t epoch = 0; epoch < epoch_cnt; ++epoch) {
         // Data shuffling
-            //std::vector<size_t> shfl = train_data.get_shuffle_indices();
-            //train_data.shuffle_cols(shfl);
-            //train_labels.shuffle_cols(shfl);
+        //std::vector<size_t> shfl = train_data.get_shuffle_indices();
+        //train_data.shuffle_cols(shfl);
+        //train_labels.shuffle_cols(shfl);
 
         for (size_t k = 0; k < train_data.cols; ++k) {
             h1.k = k;

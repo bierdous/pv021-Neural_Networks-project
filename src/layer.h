@@ -66,8 +66,9 @@ class Layer {
          */
         void init_He() {
             // Taken from https://en.cppreference.com/w/cpp/numeric/random/normal_distribution
-            std::random_device rd{};
-            std::mt19937 gen{rd()};
+            //std::random_device rd{};
+            unsigned int seed = 0;
+            std::mt19937 gen{seed};
         
             // values near the mean are the most likely
             // standard deviation affects the dispersion of generated values from the mean
@@ -88,8 +89,9 @@ class Layer {
          */
         void init_Xavier() {
             // Taken from https://en.cppreference.com/w/cpp/numeric/random/normal_distribution
-            std::random_device rd{};
-            std::mt19937 gen{rd()};
+            //std::random_device rd{};
+            unsigned int seed = 0;
+            std::mt19937 gen{seed};
         
             // values near the mean are the most likely
             // standard deviation affects the dispersion of generated values from the mean
